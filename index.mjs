@@ -1,31 +1,76 @@
-import Store from './store.mjs'
+const REVEAL_ADD_DEEP_CALLBACK = '__REVEAL_ADD_DEEP_CALLBACK__'
+const REVEAL_ADD_FLAT_CALLBACK = '__REVEAL_ADD_FLAT_CALLBACK__'
+const REVEAL_REMOVE_DEEP_CALLBACK = '__REVEAL_REMOVE_DEEP_CALLBACK__'
+const REVEAL_REMOVE_FLAT_CALLBACK = '__REVEAL_REMOVE_FLAT_CALLBACK__'
 
-const REVEAL_STORE = '__REVEAL_STORE__'
-const ROOT = '__REVEAL_STORE_PROXY_ROOT__'
+export function reveal (target, emit) {
+  let flatCallbaks = []
+  let deepCallbaks = []
+  const proxies = {}
 
-export function reveal (obj, store, trail = ROOT) {
-  store = store || new Store()
-
-  return new Proxy(obj, {
+  return new Proxy(target || {}, {
     get (obj, prop, receiver) {
-      if (prop === REVEAL_STORE) {
-        return store
-      }
-
       const reflected = Reflect.get(...arguments)
-      if (typeof reflected === 'object' && reflected != null) {
-        return reveal(reflected, store, trail ? trail + '.' + prop : prop)
+
+      if (typeof reflected === 'object' || !reflected) {
+        return proxies[prop] || (
+          proxies[prop] = reveal(reflected || {}, function (eObj, eOldObj, eProp) {
+            const oldValue = {
+              ...obj,
+              [prop]: eOldObj
+            }
+            const newValue = {
+              ...obj,
+              [prop]: eObj
+            }
+
+            if (deepCallbaks.length) {
+              deepCallbaks.forEach(c => c(newValue, reflected && oldValue, prop + '.' + eProp))
+            }
+
+            if (typeof emit === 'function') {
+              emit(newValue, reflected && oldValue, prop + '.' + eProp)
+            }
+          })
+        )
       }
 
       return reflected
     },
     set (obj, prop, value) {
+      if (prop === REVEAL_ADD_FLAT_CALLBACK) {
+        return flatCallbaks.push(value)
+      }
+
+      if (prop === REVEAL_ADD_DEEP_CALLBACK) {
+        return deepCallbaks.push(value)
+      }
+
+      if (prop === REVEAL_REMOVE_FLAT_CALLBACK) {
+        return flatCallbaks = flatCallbaks.filter(c => c !== value)
+      }
+
+      if (prop === REVEAL_REMOVE_DEEP_CALLBACK) {
+        return deepCallbaks = deepCallbaks.filter(c => c !== value)
+      }
+
       const oldValue = obj[prop]
+      const oldObj = {
+        ...obj
+      }
+
       const reflected = Reflect.set(...arguments)
 
       if (reflected && (value !== oldValue)) {
-        const path = trail ? trail + '.' + prop : prop
-        store.dispatch(path, value, oldValue)
+        if (flatCallbaks.length) {
+          flatCallbaks.forEach(c => c(obj, oldObj, prop))
+        }
+        if (deepCallbaks.length) {
+          deepCallbaks.forEach(c => c(obj, oldObj, prop))
+        }
+        if (typeof emit === 'function') {
+          emit(obj, oldObj, prop)
+        }
       }
 
       return reflected
@@ -33,51 +78,24 @@ export function reveal (obj, store, trail = ROOT) {
   })
 }
 
-export function watch (objProxy, ...params) {
-  const store = objProxy[REVEAL_STORE]
-  let path = ''
-  let handler = null
-  let options = {
-    deep: false
+export function watch (target, handler, options) {
+  options = {
+    deep: false,
+    immediate: false,
+    ...options
   }
 
-  switch (params.length) {
-    case 1:
-      handler = params[0]
-      break
-    case 2:
-      if (typeof params[0] === 'function') {
-        handler = params[0]
-        options = params[1]
-      } else {
-        path = params[0]
-        handler = params[1]
-      }
-      break
-    case 3:
-      path = params[0]
-      handler = params[1]
-      options = {
-        ...options,
-        ...params[2]
-      }
-      break
-    default:
-      throw new Error('Invalid arguments')
+  const props = options.deep
+    ? { add: REVEAL_ADD_DEEP_CALLBACK, remove: REVEAL_REMOVE_DEEP_CALLBACK }
+    : { add: REVEAL_ADD_FLAT_CALLBACK, remove: REVEAL_REMOVE_FLAT_CALLBACK }
+
+  target[props.add] = handler
+
+  if (options.immediate) {
+    handler(target)
   }
 
-  if (typeof path !== 'string') {
-    throw new Error('Path must be a string')
-  }
-
-  path = path ? ROOT + '.' + path : ROOT
-
-  if (path === ROOT) {
-    options.deep = true
-  }
-
-  store.subscribe(path, handler, options)
   return function revoke () {
-    store.unsubscribe(path, handler, options)
+    target[props.remove] = handler
   }
 }

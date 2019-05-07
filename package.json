@@ -1,17 +1,13 @@
 {
   "name": "reveal",
   "version": "1.0.0",
-  "description": "",
+  "description": "Proof of concept of exposing an object to allow observe its properties changes using ES6 Proxy",
   "main": "index.mjs",
   "files": [
-    "index.mjs",
-    "store.mjs"
+    "index.mjs"
   ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
+  "author": "Gerard Rodes",
+  "license": "MIT",
   "devDependencies": {
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.17.2",
