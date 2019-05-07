@@ -17,7 +17,7 @@ export function reveal (obj, store, trail = ROOT) {
         return reveal(reflected, store, trail ? trail + '.' + prop : prop)
       }
 
-      return Reflect.get(...arguments)
+      return reflected
     },
     set (obj, prop, value) {
       const oldValue = obj[prop]

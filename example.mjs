@@ -1,6 +1,6 @@
 import { watch, reveal } from './index.mjs'
 
-let state = reveal({
+const state = reveal({
   boo: false
 })
 
@@ -26,3 +26,19 @@ state.deep.dip.hola = 'que tal'
 revoke()
 state.deep.dip.hola = 'revoked'
 // => state changed to "revoked" from "que tal"
+
+const anotherState = reveal({
+  lol: {
+    lol: {
+      lol: {
+        lol: 'lol?'
+      }
+    }
+  }
+})
+
+watch(anotherState, 'lol', (value, oldValue) => {
+  console.log(`another state changed to "${value}" from "${oldValue}"`)
+}, { deep: true })
+
+anotherState.lol.lol.lol.lol = 'yes, lol'
