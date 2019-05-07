@@ -4,15 +4,16 @@ const REVEAL_REMOVE_DEEP_CALLBACK = '__REVEAL_REMOVE_DEEP_CALLBACK__'
 const REVEAL_REMOVE_FLAT_CALLBACK = '__REVEAL_REMOVE_FLAT_CALLBACK__'
 
 export function reveal (target, emit) {
+  const proxies = {}
+
   let flatCallbaks = []
   let deepCallbaks = []
-  const proxies = {}
 
   return new Proxy(target || {}, {
     get (obj, prop, receiver) {
       const reflected = Reflect.get(...arguments)
 
-      if (typeof reflected === 'object' || !reflected) {
+      if (typeof reflected === 'object' || typeof reflected === 'undefined') {
         return proxies[prop] || (
           proxies[prop] = reveal(reflected || {}, function (eObj, eOldObj, eProp) {
             const oldValue = {
@@ -25,11 +26,11 @@ export function reveal (target, emit) {
             }
 
             if (deepCallbaks.length) {
-              deepCallbaks.forEach(c => c(newValue, reflected && oldValue, prop + '.' + eProp))
+              deepCallbaks.forEach(c => c(newValue, oldValue, prop + '.' + eProp))
             }
 
             if (typeof emit === 'function') {
-              emit(newValue, reflected && oldValue, prop + '.' + eProp)
+              emit(newValue, oldValue, prop + '.' + eProp)
             }
           })
         )

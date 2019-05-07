@@ -1,5 +1,5 @@
 {
-  "name": "reveal",
+  "name": "w-reveal",
   "version": "1.0.0",
   "description": "Proof of concept of exposing an object to allow observe its properties changes using ES6 Proxy",
   "main": "index.mjs",

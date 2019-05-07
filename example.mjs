@@ -1,12 +1,19 @@
 
 import { watch, reveal } from './index.mjs'
 
-const state = reveal()
+const state = reveal({
+  init: {
+    hi: 'hello'
+  }
+})
+watch(
+  state.init,
+  (value, old, path) => {
+    console.log('[watcher:state]', value, old, path)
+  },
+  { deep: true, immediate: true }
+)
+// logs => [watcher:state] { hi: 'hello' } undefined undefined
 
-const revoke = watch(state, function (value, old, prop) {
-  console.log('[watcher:state]', value, old, prop)
-}, { deep: true, immediate: true })
-
-state.deep.bar.deep.bar.dip = 'is new'
-revoke()
-state.deep.bar.deep.bar.dip = 'is new new'
+state.init.is.deep.and.works = 'hi'
+// logs => [watcher:state] { hi: 'hello', is: { deep: { and: [Object] } } } { hi: 'hello', is: { deep: { and: {} } } } is.deep.and.works
