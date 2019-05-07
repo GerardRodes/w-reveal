@@ -1,5 +1,6 @@
-class Store {
+export default class Store {
   constructor () {
+    console.log('[store:new]')
     this.watchers = {}
     this.deepWatchers = {}
   }
@@ -53,7 +54,3 @@ class Store {
     }
   }
 }
-
-const store = new Store()
-
-export default store

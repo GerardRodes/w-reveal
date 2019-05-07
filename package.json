@@ -2,7 +2,11 @@
   "name": "reveal",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.mjs",
+  "files": [
+    "index.mjs",
+    "store.mjs"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

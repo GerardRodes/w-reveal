@@ -1,24 +1,28 @@
 import { watch, reveal } from './index.mjs'
 
 let state = reveal({
-  boo: false,
-  deep: {
-    dip: {
-      bar: 'hello'
-    }
-  }
+  boo: false
 })
 
 watch(state, (value, oldValue) => {
   console.log(`state changed to "${value}" from "${oldValue}"`)
 }, { deep: true })
+// when watching root state, watcher is deep ALWAYS
 
-watch(state, 'deep.dip.hola', (value, oldValue) => {
+const revoke = watch(state, 'deep.dip.hola', (value, oldValue) => {
   console.log(`I only watch for deep.dip.hola: state changed to "${value}" from "${oldValue}"`)
-})
+}, { deep: false })
+// when watching non-root value, watcher is not deep by default, but it can be set to deep
 
 state.boo = 'adios'
 // => state changed to "adios" from "false"
+state.deep = {
+  dip: {}
+}
+
 state.deep.dip.hola = 'que tal'
 // => I only watch for deep.dip.hola: state changed to "que tal" from "undefined"
 // => state changed to "que tal" from "undefined"
+revoke()
+state.deep.dip.hola = 'revoked'
+// => state changed to "revoked" from "que tal"

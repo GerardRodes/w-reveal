@@ -1,20 +1,20 @@
-import store from './store.mjs'
+import Store from './store.mjs'
 
-const REVEAL_ID = '__reveal_id__'
-let watchersCounter = 0
+const REVEAL_STORE = '__REVEAL_STORE__'
+const ROOT = '__REVEAL_STORE_PROXY_ROOT__'
 
-export function reveal (obj, revealID, trail) {
-  const id = revealID || `__REVEAL_ID_${watchersCounter++}__`
+export function reveal (obj, store, trail = ROOT) {
+  store = store || new Store()
 
   return new Proxy(obj, {
     get (obj, prop, receiver) {
-      if (prop === REVEAL_ID) {
-        return id
+      if (prop === REVEAL_STORE) {
+        return store
       }
 
       const reflected = Reflect.get(...arguments)
       if (typeof reflected === 'object' && reflected != null) {
-        return reveal(reflected, id, trail ? trail + '.' + prop : prop)
+        return reveal(reflected, store, trail ? trail + '.' + prop : prop)
       }
 
       return Reflect.get(...arguments)
@@ -25,7 +25,7 @@ export function reveal (obj, revealID, trail) {
 
       if (reflected && (value !== oldValue)) {
         const path = trail ? trail + '.' + prop : prop
-        store.dispatch(id + path, value, oldValue)
+        store.dispatch(path, value, oldValue)
       }
 
       return reflected
@@ -34,7 +34,7 @@ export function reveal (obj, revealID, trail) {
 }
 
 export function watch (objProxy, ...params) {
-  const id = objProxy[REVEAL_ID]
+  const store = objProxy[REVEAL_STORE]
   let path = ''
   let handler = null
   let options = {
@@ -70,10 +70,14 @@ export function watch (objProxy, ...params) {
     throw new Error('Path must be a string')
   }
 
-  const name = id + path
-  store.subscribe(name, handler, options)
+  path = path ? ROOT + '.' + path : ROOT
 
+  if (path === ROOT) {
+    options.deep = true
+  }
+
+  store.subscribe(path, handler, options)
   return function revoke () {
-    store.unsubscribe(name, handler, options)
+    store.unsubscribe(path, handler, options)
   }
 }
