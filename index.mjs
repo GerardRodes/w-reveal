@@ -1,13 +1,10 @@
-import store from './store'
+import store from './store.mjs'
 
 const REVEAL_ID = '__reveal_id__'
-const REVEAL_PATH = '__reveal_path__'
 let watchersCounter = 0
 
-window.store = store
-
-export function reveal (obj) {
-  const id = obj[REVEAL_ID] || `__REVEAL_ID_${watchersCounter++}__`
+export function reveal (obj, revealID, trail) {
+  const id = revealID || `__REVEAL_ID_${watchersCounter++}__`
 
   return new Proxy(obj, {
     get (obj, prop, receiver) {
@@ -17,26 +14,18 @@ export function reveal (obj) {
 
       const reflected = Reflect.get(...arguments)
       if (typeof reflected === 'object' && reflected != null) {
-        reflected[REVEAL_PATH] = [
-          obj[REVEAL_PATH], prop
-        ].filter(p => !!p).join('.')
-        reflected[REVEAL_ID] = id
-        return reveal(reflected)
+        return reveal(reflected, id, trail ? trail + '.' + prop : prop)
       }
 
       return Reflect.get(...arguments)
     },
     set (obj, prop, value) {
-      console.log('set', ...arguments)
-
       const oldValue = obj[prop]
       const reflected = Reflect.set(...arguments)
 
       if (reflected && (value !== oldValue)) {
-        const path = [
-          obj[REVEAL_PATH], prop
-        ].filter(p => !!p).join('.')
-        store.dispatch(id + path, { prop: path, value, oldValue })
+        const path = trail ? trail + '.' + prop : prop
+        store.dispatch(id + path, value, oldValue)
       }
 
       return reflected

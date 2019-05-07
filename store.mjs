@@ -4,25 +4,23 @@ class Store {
     this.deepWatchers = {}
   }
 
-  dispatch (name, data) {
-    console.log('dis', name)
-
+  dispatch (name, ...params) {
+    console.log('[store:dis]', name)
     if (Array.isArray(this.watchers[name])) {
       this.watchers[name]
-        .forEach(handler => handler(data))
+        .forEach(handler => handler(...params))
     }
 
     for (const key in this.deepWatchers) {
       if (name.startsWith(key)) {
         this.deepWatchers[key]
-          .forEach(handler => handler(data))
+          .forEach(handler => handler(...params))
       }
     }
   }
 
   subscribe (name, handler, options) {
-    console.log('sub', name)
-
+    console.log('[store:sub]', name)
     const isDeep = !options || options.deep
 
     if (isDeep) {
@@ -39,6 +37,7 @@ class Store {
   }
 
   unsubscribe (name, handler, options) {
+    console.log('[store:unsub]', name)
     const isDeep = !options || options.deep
 
     if (isDeep) {
